@@ -27,7 +27,8 @@ interface Employee {
   basic_salary: number;
   joining_date: string | null;
   status: 'active' | 'inactive';
-  zones: string | null; // Comma separated list from backend
+  zones: string | null;     // Comma-separated zone names from backend
+  zone_ids: string | null;  // Comma-separated zone IDs from backend
 }
 
 export const Employees: React.FC = () => {
@@ -61,6 +62,7 @@ export const Employees: React.FC = () => {
   const [editDesg, setEditDesg] = useState('');
   const [editSalary, setEditSalary] = useState('');
   const [editStatus, setEditStatus] = useState<'active' | 'inactive'>('active');
+  const [editSelectedZones, setEditSelectedZones] = useState<number[]>([]);
 
   const { showToast } = useToast();
 
@@ -138,6 +140,11 @@ export const Employees: React.FC = () => {
     setEditDesg(emp.designation || '');
     setEditSalary(emp.basic_salary.toString());
     setEditStatus(emp.status);
+    // Parse the comma-separated zone_ids string into an array of numbers
+    const zoneIdNums = emp.zone_ids
+      ? emp.zone_ids.split(',').map((id) => parseInt(id.trim(), 10)).filter((n) => !isNaN(n))
+      : [];
+    setEditSelectedZones(zoneIdNums);
     setIsEditModalOpen(true);
   };
 
@@ -153,6 +160,7 @@ export const Employees: React.FC = () => {
         designation: editDesg || null,
         basic_salary: parseFloat(editSalary) || 0,
         status: editStatus,
+        zone_ids: editSelectedZones,
       });
 
       showToast('Employee updated successfully!', 'success');
@@ -176,6 +184,12 @@ export const Employees: React.FC = () => {
 
   const handleZoneCheckboxChange = (zoneId: number) => {
     setNewSelectedZones((prev) => 
+      prev.includes(zoneId) ? prev.filter((id) => id !== zoneId) : [...prev, zoneId]
+    );
+  };
+
+  const handleEditZoneCheckboxChange = (zoneId: number) => {
+    setEditSelectedZones((prev) =>
       prev.includes(zoneId) ? prev.filter((id) => id !== zoneId) : [...prev, zoneId]
     );
   };
@@ -254,7 +268,17 @@ export const Employees: React.FC = () => {
                       <div style={{ fontSize: '0.75rem', color: 'var(--slate)' }}>{emp.designation || '—'}</div>
                     </td>
                     <td>
-                      <span style={{ fontSize: '0.85rem' }}>{emp.zones || 'No assigned zones'}</span>
+                      {emp.zones ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {emp.zones.split(', ').map((z, i) => (
+                            <span key={i} className="pill pill-teal" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
+                              {z.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--slate)', fontStyle: 'italic' }}>No zones</span>
+                      )}
                     </td>
                     <td className="mono" style={{ fontWeight: 500 }}>
                       ₹{emp.basic_salary.toLocaleString()}
@@ -447,7 +471,7 @@ export const Employees: React.FC = () => {
               </button>
             </div>
             <form onSubmit={handleEditEmployee}>
-              <div className="modal-body">
+              <div className="modal-body" style={styles.modalGrid}>
                 <div className="form-group">
                   <label>Full Name</label>
                   <input
@@ -494,7 +518,7 @@ export const Employees: React.FC = () => {
                     onChange={(e) => setEditSalary(e.target.value)}
                   />
                 </div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
+                <div className="form-group">
                   <label>Status</label>
                   <select
                     className="form-control"
@@ -504,6 +528,30 @@ export const Employees: React.FC = () => {
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                   </select>
+                </div>
+
+                {/* Zone Assignment — span full width */}
+                <div className="form-group" style={{ gridColumn: 'span 2', marginBottom: 0 }}>
+                  <label style={{ marginBottom: '0.5rem' }}>Assigned Office Locations / Geofence Zones</label>
+                  {zones.length === 0 ? (
+                    <div style={{ fontSize: '0.8rem', color: 'var(--slate)', fontStyle: 'italic' }}>
+                      No geofences created yet. Go to the Zones page to add one first.
+                    </div>
+                  ) : (
+                    <div style={styles.zoneChecksGrid}>
+                      {zones.map((zone) => (
+                        <label key={zone.id} style={styles.checkboxLabel}>
+                          <input
+                            type="checkbox"
+                            style={{ marginRight: '6px' }}
+                            checked={editSelectedZones.includes(zone.id)}
+                            onChange={() => handleEditZoneCheckboxChange(zone.id)}
+                          />
+                          <span>{zone.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="modal-footer">

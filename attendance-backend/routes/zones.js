@@ -66,13 +66,15 @@ router.put('/:id', requireRole('hr_manager', 'company_admin'), (req, res) => {
   res.json(db.prepare(`SELECT * FROM geofence_zones WHERE id = ?`).get(existing.id));
 });
 
-// Delete zone
+// Delete zone (cascade removes employee assignments first)
 router.delete('/:id', requireRole('hr_manager', 'company_admin'), (req, res) => {
   const existing = db
     .prepare(`SELECT * FROM geofence_zones WHERE id = ? AND company_id = ?`)
     .get(req.params.id, req.user.companyId);
   if (!existing) return res.status(404).json({ error: 'Zone not found' });
 
+  // Remove all employee assignments for this zone first
+  db.prepare(`DELETE FROM user_zone_assignments WHERE zone_id = ?`).run(existing.id);
   db.prepare(`DELETE FROM geofence_zones WHERE id = ?`).run(existing.id);
   res.json({ success: true });
 });

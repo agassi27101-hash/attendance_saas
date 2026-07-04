@@ -7,13 +7,14 @@ const router = express.Router();
 router.use(requireAuth);
 router.use(requireRole('hr_manager', 'company_admin'));
 
-// List employees with their assigned zone names
+// List employees with their assigned zone names and IDs
 router.get('/', (req, res) => {
   const employees = db
     .prepare(
       `SELECT u.id, u.name, u.email, u.phone, u.role, u.employee_code, u.department,
               u.designation, u.basic_salary, u.joining_date, u.status,
-              GROUP_CONCAT(z.name, ', ') as zones
+              GROUP_CONCAT(z.name, ', ') as zones,
+              GROUP_CONCAT(z.id, ',') as zone_ids
        FROM users u
        LEFT JOIN user_zone_assignments uza ON uza.user_id = u.id
        LEFT JOIN geofence_zones z ON z.id = uza.zone_id
@@ -78,7 +79,7 @@ router.put('/:id', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Employee not found' });
 
   const {
-    name, phone, department, designation, basic_salary, status,
+    name, phone, department, designation, basic_salary, status, zone_ids,
   } = req.body;
 
   db.prepare(
@@ -93,6 +94,17 @@ router.put('/:id', (req, res) => {
     status ?? existing.status,
     existing.id
   );
+
+  if (Array.isArray(zone_ids)) {
+    // Clear previous assignments
+    db.prepare(`DELETE FROM user_zone_assignments WHERE user_id = ?`).run(existing.id);
+    
+    // Insert new zone assignments
+    const assignStmt = db.prepare(`INSERT INTO user_zone_assignments (user_id, zone_id) VALUES (?, ?)`);
+    for (const zoneId of zone_ids) {
+      assignStmt.run(existing.id, zoneId);
+    }
+  }
 
   res.json(db.prepare(`SELECT id, name, email, role, status FROM users WHERE id = ?`).get(existing.id));
 });
