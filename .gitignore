@@ -1,0 +1,12 @@
+# Root GitIgnore for Attendance SaaS Project
+
+**/node_modules/
+**/.env
+**/data/attendance.db
+**/data/attendance.db-shm
+**/data/attendance.db-wal
+**/data/payslips/**/*.pdf
+**/.expo/
+**/.vscode/
+.DS_Store
+**/.DS_Store
