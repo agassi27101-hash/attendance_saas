@@ -520,9 +520,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.mist,
   },
   contentContainer: {
-    padding: Spacing.four,
+    padding: Spacing.three,
     alignItems: 'center',
-    paddingBottom: Spacing.six,
+    paddingBottom: 100, // extra room so content clears the tab bar on small phones
   },
   loadingContainer: {
     flex: 1,
@@ -538,11 +538,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.three,
+    padding: Spacing.two,
     width: '100%',
     maxWidth: 400,
     alignItems: 'center',
-    marginBottom: Spacing.four,
+    marginBottom: Spacing.two,
   },
   dateHeader: {
     color: Colors.ink,
@@ -560,17 +560,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   buttonContainer: {
-    width: 220,
-    height: 220,
+    width: 180,
+    height: 180,
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: Spacing.five,
+    marginVertical: Spacing.three,
   },
   circleButton: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    borderWidth: 6,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 5,
     backgroundColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
@@ -594,9 +594,9 @@ const styles = StyleSheet.create({
   },
   pulseCircle: {
     position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
   },
   statusBadge: {
     flexDirection: 'row',

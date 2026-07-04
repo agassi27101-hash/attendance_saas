@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: Spacing.three,
-    paddingBottom: Spacing.six,
+    paddingBottom: 100,
   },
   payslipCard: {
     flexDirection: 'row',
