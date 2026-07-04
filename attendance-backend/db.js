@@ -1,8 +1,12 @@
 const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcryptjs');
 
-const dbPath = path.join(__dirname, 'data', 'attendance.db');
+const dataDir = path.join(__dirname, 'data');
+fs.mkdirSync(dataDir, { recursive: true }); // ensure directory exists on first deploy
+
+const dbPath = path.join(dataDir, 'attendance.db');
 const db = new DatabaseSync(dbPath);
 
 db.exec(`
