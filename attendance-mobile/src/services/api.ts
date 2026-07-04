@@ -3,12 +3,9 @@ import { Platform } from 'react-native';
 import { getToken, deleteToken } from './auth';
 import { router } from 'expo-router';
 
-// Android emulator uses 10.0.2.2 to access host's localhost.
-// iOS simulator can use localhost directly.
-const BASE_URL = Platform.select({
-  android: 'http://10.0.2.2:3001',
-  default: 'http://localhost:3001',
-});
+// Use the machine's local IP address (172.31.99.51) so that physical devices 
+// running Expo Go on the same network can connect to the local backend server.
+const BASE_URL = 'http://172.31.99.51:3001';
 
 export const api = axios.create({
   baseURL: `${BASE_URL}/api`,

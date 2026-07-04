@@ -40,6 +40,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d71d362a-e6d1-47bb-b59d-71a0635b4b5b"
+      }
+    },
+    "owner": "deepan.agassi"
   }
 }
