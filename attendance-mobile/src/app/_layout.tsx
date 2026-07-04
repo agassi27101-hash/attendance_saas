@@ -9,6 +9,7 @@ import * as Location from 'expo-location';
 import { Stack, router } from 'expo-router';
 import { useColorScheme, AppState, AppStateStatus } from 'react-native';
 import { getToken } from '@/services/auth';
+import { api } from '@/services/api';
 
 // Prevent splash screen from auto-hiding until we load fonts/auth state
 SplashScreen.preventAutoHideAsync();
@@ -16,6 +17,7 @@ SplashScreen.preventAutoHideAsync();
 interface AppStateContextProps {
   isAuthenticated: boolean | null;
   hasPermission: boolean | null;
+  isFaceRegistered: boolean | null;
   checkAuth: () => Promise<void>;
   checkPermission: () => Promise<void>;
   logout: () => void;
@@ -35,6 +37,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [isFaceRegistered, setIsFaceRegistered] = useState<boolean | null>(null);
 
   // Load custom fonts (Space Grotesk, Inter, IBM Plex Mono)
   const [fontsLoaded] = useFonts({
@@ -52,9 +55,18 @@ export default function RootLayout() {
   const checkAuth = async () => {
     try {
       const token = await getToken();
-      setIsAuthenticated(!!token);
+      if (token) {
+        // Fetch current user details to check face_registered status
+        const response = await api.get('/auth/me');
+        setIsAuthenticated(true);
+        setIsFaceRegistered(response.data.face_registered === 1);
+      } else {
+        setIsAuthenticated(false);
+        setIsFaceRegistered(null);
+      }
     } catch (e) {
       setIsAuthenticated(false);
+      setIsFaceRegistered(null);
     }
   };
 
@@ -69,6 +81,7 @@ export default function RootLayout() {
 
   const logout = () => {
     setIsAuthenticated(false);
+    setIsFaceRegistered(null);
   };
 
   // Run initial checks
@@ -93,10 +106,10 @@ export default function RootLayout() {
     };
   }, [isAuthenticated]);
 
-  // Navigate dynamically based on auth & permission status
+  // Navigate dynamically based on auth, permission, and face registration status
   useEffect(() => {
     if (!fontsLoaded) return;
-    if (isAuthenticated === null || hasPermission === null) return;
+    if (isAuthenticated === null || hasPermission === null || (isAuthenticated && isFaceRegistered === null)) return;
 
     // Hide splash screen once fonts and state checks are complete
     SplashScreen.hideAsync();
@@ -105,21 +118,24 @@ export default function RootLayout() {
       router.replace('/login');
     } else if (!hasPermission) {
       router.replace('/permission-request');
+    } else if (isFaceRegistered === false) {
+      router.replace('/face-registration');
     } else {
       router.replace('/(tabs)');
     }
-  }, [fontsLoaded, isAuthenticated, hasPermission]);
+  }, [fontsLoaded, isAuthenticated, hasPermission, isFaceRegistered]);
 
   if (!fontsLoaded) {
     return null;
   }
 
   return (
-    <AppStateContext.Provider value={{ isAuthenticated, hasPermission, checkAuth, checkPermission, logout }}>
+    <AppStateContext.Provider value={{ isAuthenticated, hasPermission, isFaceRegistered, checkAuth, checkPermission, logout }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="login" options={{ gestureEnabled: false }} />
           <Stack.Screen name="permission-request" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="face-registration" options={{ gestureEnabled: false }} />
           <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
         </Stack>
       </ThemeProvider>
