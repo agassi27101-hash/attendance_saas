@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 
 // Use the public localhost.run tunnel URL to bypass Wi-Fi/firewall restrictions
 // and allow physical devices running Expo Go to connect to the backend server.
-const BASE_URL = 'https://6e62dd6368cbaf.lhr.life';
+const BASE_URL = 'https://6f965042810066.lhr.life';
 
 export const api = axios.create({
   baseURL: `${BASE_URL}/api`,
