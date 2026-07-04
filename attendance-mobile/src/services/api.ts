@@ -9,7 +9,7 @@ const BASE_URL = 'https://attendance-saas-jwk6.onrender.com';
 
 export const api = axios.create({
   baseURL: `${BASE_URL}/api`,
-  timeout: 10000,
+  timeout: 60000, // 60 seconds to allow Render server to wake from cold sleep
 });
 
 // Request Interceptor: Attach the JWT token if it exists
