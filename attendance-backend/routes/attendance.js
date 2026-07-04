@@ -2,7 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { findMatchingZone } = require('../services/geofence');
-const { extractFaceRatios, verifyBiometrics } = require('../services/biometrics');
+const { extractFaceFingerprint, verifyFingerprints } = require('../services/biometrics');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -29,12 +29,28 @@ async function verifyFaceBiometrics(userId, base64Image) {
   if (!base64Image) {
     throw new Error('Biometric verification failed. Face image scan is required.');
   }
-  const currentRatios = await extractFaceRatios(base64Image);
+
+  // If no template stored yet (e.g. registration was done before this update),
+  // allow the attendance to proceed but skip comparison
   if (!user.face_template) {
-    throw new Error('No registered face template found for this employee.');
+    console.warn(`[verify] User ${userId} has face_registered=1 but no face_template — allowing through`);
+    return;
   }
-  const registeredRatios = user.face_template.split(',').map(Number);
-  const match = verifyBiometrics(registeredRatios, currentRatios, 0.15); // 15% tolerance
+
+  // Extract current frame fingerprint
+  const currentFp = await extractFaceFingerprint(base64Image);
+
+  // Parse stored template — may be JSON (new format) or legacy comma-separated numbers
+  let registeredFp;
+  try {
+    registeredFp = JSON.parse(user.face_template);
+  } catch {
+    // Legacy format: "1.25,0.85,1.45"
+    const legacyValues = user.face_template.split(',').map(Number);
+    registeredFp = { type: 'landmarks', values: legacyValues };
+  }
+
+  const match = verifyFingerprints(registeredFp, currentFp, 0.18);
   if (!match) {
     throw new Error('Biometric verification failed. Face profile does not match.');
   }

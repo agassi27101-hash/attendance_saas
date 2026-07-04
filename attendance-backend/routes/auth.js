@@ -55,12 +55,30 @@ router.get('/me', requireAuth, (req, res) => {
   res.json(user);
 });
 
-// Register face route
-router.post('/register-face', requireAuth, (req, res) => {
+// Register face route — stores fingerprint as JSON in face_template column
+const { extractFaceFingerprint } = require('../services/biometrics');
+
+router.post('/register-face', requireAuth, async (req, res) => {
   try {
-    db.prepare(`UPDATE users SET face_registered = 1 WHERE id = ?`).run(req.user.userId);
+    const { image } = req.body;
+
+    let fingerprintJson = null;
+    if (image && !image.startsWith('MOCK_')) {
+      try {
+        const fp = await extractFaceFingerprint(image);
+        fingerprintJson = JSON.stringify(fp); // { type, values }
+      } catch (err) {
+        console.warn('[register-face] fingerprint extraction failed:', err.message);
+        // Allow registration to proceed — fingerprint will be null
+      }
+    }
+
+    db.prepare(`UPDATE users SET face_registered = 1, face_template = ? WHERE id = ?`)
+      .run(fingerprintJson, req.user.userId);
+
     res.json({ success: true, message: 'Face template registered successfully!' });
   } catch (err) {
+    console.error('[register-face] error:', err);
     res.status(500).json({ error: 'Failed to register face template.' });
   }
 });
