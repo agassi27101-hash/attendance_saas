@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -28,6 +28,7 @@ const FRAME_SIZE = width * 0.7;
 
 export default function FaceRegistrationScreen() {
   const { checkAuth } = useAppStateContext();
+  const cameraRef = useRef<any>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
@@ -89,8 +90,17 @@ export default function FaceRegistrationScreen() {
     setScanStep('success');
 
     try {
+      let base64Photo = 'MOCK_BASE64_JPEG_IMAGE_DATA';
+      if (permission && permission.granted && cameraRef.current) {
+        const photo = await cameraRef.current.takePictureAsync({
+          base64: true,
+          quality: 0.5,
+        });
+        base64Photo = photo.base64 || '';
+      }
+
       // Call backend to mark face as registered
-      await api.post('/auth/register-face');
+      await api.post('/auth/register-face', { image: base64Photo });
       Alert.alert('Success', 'Your face has been registered successfully!', [
         {
           text: 'Get Started',
@@ -99,8 +109,9 @@ export default function FaceRegistrationScreen() {
           }
         }
       ]);
-    } catch {
-      Alert.alert('Error', 'Failed to register face template. Please try again.');
+    } catch (err: any) {
+      const errMsg = err.response?.data?.error || 'Failed to register face template. Please try again.';
+      Alert.alert('Error', errMsg);
       setScanStep('position');
     } finally {
       setIsRegistering(false);
@@ -132,7 +143,7 @@ export default function FaceRegistrationScreen() {
 
       <View style={styles.cameraContainer}>
         {permission && permission.granted ? (
-          <CameraView style={StyleSheet.absoluteFill} facing="front">
+          <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="front">
             <View style={styles.cameraOverlay} />
           </CameraView>
         ) : (

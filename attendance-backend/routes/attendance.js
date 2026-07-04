@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { findMatchingZone } = require('../services/geofence');
+const { extractFaceRatios, verifyBiometrics } = require('../services/biometrics');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -20,15 +21,41 @@ function getAssignedZones(userId) {
     .all(userId);
 }
 
+async function verifyFaceBiometrics(userId, base64Image) {
+  const user = db.prepare(`SELECT face_registered, face_template FROM users WHERE id = ?`).get(userId);
+  if (!user || !user.face_registered) {
+    return; // Bypass check if face not registered yet
+  }
+  if (!base64Image) {
+    throw new Error('Biometric verification failed. Face image scan is required.');
+  }
+  const currentRatios = await extractFaceRatios(base64Image);
+  if (!user.face_template) {
+    throw new Error('No registered face template found for this employee.');
+  }
+  const registeredRatios = user.face_template.split(',').map(Number);
+  const match = verifyBiometrics(registeredRatios, currentRatios, 0.15); // 15% tolerance
+  if (!match) {
+    throw new Error('Biometric verification failed. Face profile does not match.');
+  }
+}
+
 // --- MARK IN ---
-router.post('/mark-in', (req, res) => {
-  const { latitude, longitude } = req.body;
+router.post('/mark-in', async (req, res) => {
+  const { latitude, longitude, image } = req.body;
   if (latitude == null || longitude == null) {
     return res.status(400).json({ error: 'latitude and longitude are required' });
   }
 
   const userId = req.user.userId;
   const date = todayStr();
+
+  // 1. Perform biometric face verification first
+  try {
+    await verifyFaceBiometrics(userId, image);
+  } catch (err) {
+    return res.status(403).json({ error: err.message });
+  }
 
   const already = db.prepare(`SELECT * FROM attendance_logs WHERE user_id = ? AND date = ?`).get(userId, date);
   if (already && already.mark_in_time) {
@@ -64,14 +91,21 @@ router.post('/mark-in', (req, res) => {
 });
 
 // --- MARK OUT ---
-router.post('/mark-out', (req, res) => {
-  const { latitude, longitude } = req.body;
+router.post('/mark-out', async (req, res) => {
+  const { latitude, longitude, image } = req.body;
   if (latitude == null || longitude == null) {
     return res.status(400).json({ error: 'latitude and longitude are required' });
   }
 
   const userId = req.user.userId;
   const date = todayStr();
+
+  // 1. Perform biometric face verification first
+  try {
+    await verifyFaceBiometrics(userId, image);
+  } catch (err) {
+    return res.status(403).json({ error: err.message });
+  }
 
   const log = db.prepare(`SELECT * FROM attendance_logs WHERE user_id = ? AND date = ?`).get(userId, date);
   if (!log || !log.mark_in_time) {

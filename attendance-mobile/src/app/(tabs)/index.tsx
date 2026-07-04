@@ -61,6 +61,7 @@ export default function HomeScreen() {
   const [verifyingProgress, setVerifyingProgress] = useState(0);
   const [verifyingText, setVerifyingText] = useState('Position face in frame...');
 
+  const cameraRef = useRef<any>(null);
   const timerRef = useRef<any>(null);
   const locationIntervalRef = useRef<any>(null);
 
@@ -224,7 +225,7 @@ export default function HomeScreen() {
 
     // Simulate scanning
     let progress = 0;
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       progress += 10;
       setVerifyingProgress(progress);
       
@@ -234,17 +235,32 @@ export default function HomeScreen() {
         setVerifyingText('Verifying security hash...');
       } else if (progress >= 100) {
         clearInterval(interval);
-        setVerifyingText('Face match verified! (99.8%)');
         
-        setTimeout(() => {
+        try {
+          let base64Photo = 'MOCK_BASE64_JPEG_IMAGE_DATA';
+          if (permission && permission.granted && cameraRef.current) {
+            const photo = await cameraRef.current.takePictureAsync({
+              base64: true,
+              quality: 0.5,
+            });
+            base64Photo = photo.base64 || '';
+          }
+          
+          setVerifyingText('Face match verified! (99.8%)');
+          
+          setTimeout(() => {
+            setIsVerifyingFace(false);
+            proceedMarkAttendance(base64Photo);
+          }, 800);
+        } catch (err: any) {
           setIsVerifyingFace(false);
-          proceedMarkAttendance();
-        }, 800);
+          Alert.alert('Verification Error', 'Failed to capture camera snapshot. Please try again.');
+        }
       }
     }, 200);
   };
 
-  const proceedMarkAttendance = async () => {
+  const proceedMarkAttendance = async (image: string) => {
     if (actionLoading) return;
     setActionLoading(true);
 
@@ -262,6 +278,7 @@ export default function HomeScreen() {
       const response = await api.post(endpoint, {
         latitude,
         longitude,
+        image,
       });
 
       Alert.alert('Verification Success', response.data.message);
@@ -464,7 +481,7 @@ export default function HomeScreen() {
             {/* Scanning viewport */}
             <View style={styles.cameraBox}>
               {permission && permission.granted ? (
-                <CameraView style={StyleSheet.absoluteFill} facing="front" />
+                <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="front" />
               ) : (
                 <View style={styles.simulatedBox}>
                   <Ionicons name="scan" size={48} color="rgba(255,255,255,0.2)" />

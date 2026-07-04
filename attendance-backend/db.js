@@ -116,6 +116,12 @@ try {
   // column already exists
 }
 
+try {
+  db.exec(`ALTER TABLE users ADD COLUMN face_template TEXT;`);
+} catch (e) {
+  // column already exists
+}
+
 // --- Seed demo data if empty ---
 const companyCount = db.prepare('SELECT COUNT(*) as c FROM companies').get().c;
 if (companyCount === 0) {
