@@ -38,6 +38,7 @@ router.post('/login', (req, res) => {
       companyId: user.company_id,
       employeeCode: user.employee_code,
       department: user.department,
+      face_registered: user.face_registered,
     },
   });
 });
@@ -45,13 +46,23 @@ router.post('/login', (req, res) => {
 // Get current user profile details
 router.get('/me', requireAuth, (req, res) => {
   const user = db.prepare(`
-    SELECT id, company_id, name, email, phone, role, employee_code, department, designation, basic_salary, joining_date, status
+    SELECT id, company_id, name, email, phone, role, employee_code, department, designation, basic_salary, joining_date, status, face_registered
     FROM users
     WHERE id = ?
   `).get(req.user.userId);
 
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json(user);
+});
+
+// Register face route
+router.post('/register-face', requireAuth, (req, res) => {
+  try {
+    db.prepare(`UPDATE users SET face_registered = 1 WHERE id = ?`).run(req.user.userId);
+    res.json({ success: true, message: 'Face template registered successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to register face template.' });
+  }
 });
 
 module.exports = router;

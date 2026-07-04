@@ -110,6 +110,12 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_attendance_company_date ON attendance_logs(company_id, date);
 `);
 
+try {
+  db.exec(`ALTER TABLE users ADD COLUMN face_registered INTEGER DEFAULT 0;`);
+} catch (e) {
+  // column already exists
+}
+
 // --- Seed demo data if empty ---
 const companyCount = db.prepare('SELECT COUNT(*) as c FROM companies').get().c;
 if (companyCount === 0) {
