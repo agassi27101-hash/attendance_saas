@@ -1,12 +1,8 @@
 import axios from 'axios';
 import { getToken, deleteToken } from './auth';
 
-// Use local backend when running in dev (localhost), otherwise use the
-// permanent Render.com deployment for production / remote access.
-const BASE_URL =
-  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3001'
-    : 'https://attendance-saas-jwk6.onrender.com';
+// Point dashboard to the same permanent Render.com backend as the mobile app
+const BASE_URL = 'https://attendance-saas-jwk6.onrender.com';
 
 export const api = axios.create({
   baseURL: `${BASE_URL}/api`,
