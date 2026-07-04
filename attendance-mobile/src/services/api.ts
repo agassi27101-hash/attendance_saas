@@ -3,9 +3,9 @@ import { Platform } from 'react-native';
 import { getToken, deleteToken } from './auth';
 import { router } from 'expo-router';
 
-// Use the machine's local IP address (172.31.99.51) so that physical devices 
-// running Expo Go on the same network can connect to the local backend server.
-const BASE_URL = 'http://172.31.99.51:3001';
+// Use the public localhost.run tunnel URL to bypass Wi-Fi/firewall restrictions
+// and allow physical devices running Expo Go to connect to the backend server.
+const BASE_URL = 'https://bb61011e7b0141.lhr.life';
 
 export const api = axios.create({
   baseURL: `${BASE_URL}/api`,
