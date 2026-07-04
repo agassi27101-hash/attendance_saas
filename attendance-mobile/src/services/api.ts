@@ -3,9 +3,9 @@ import { Platform } from 'react-native';
 import { getToken, deleteToken } from './auth';
 import { router } from 'expo-router';
 
-// Use the public localhost.run tunnel URL to bypass Wi-Fi/firewall restrictions
-// and allow physical devices running Expo Go to connect to the backend server.
-const BASE_URL = 'https://6f965042810066.lhr.life';
+// Permanent backend URL hosted on Render.com (https://render.com)
+// No tunnel needed — this URL never changes.
+const BASE_URL = 'https://attendance-saas-jwk6.onrender.com';
 
 export const api = axios.create({
   baseURL: `${BASE_URL}/api`,

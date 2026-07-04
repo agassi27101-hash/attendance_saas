@@ -1,11 +1,12 @@
 import axios from 'axios';
 import { getToken, deleteToken } from './auth';
 
-// Use local host when accessing on localhost, fallback to the public keepalive tunnel
+// Use local backend when running in dev (localhost), otherwise use the
+// permanent Render.com deployment for production / remote access.
 const BASE_URL =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:3001'
-    : 'https://6e62dd6368cbaf.lhr.life';
+    : 'https://attendance-saas-jwk6.onrender.com';
 
 export const api = axios.create({
   baseURL: `${BASE_URL}/api`,
