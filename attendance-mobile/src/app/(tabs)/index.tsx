@@ -16,12 +16,15 @@ import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
+import SuccessOverlay from '@/components/success-overlay';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
   withRepeat, 
   withTiming, 
+  withSpring,
   withSequence,
+  withDelay,
   runOnJS
 } from 'react-native-reanimated';
 
@@ -54,7 +57,9 @@ export default function HomeScreen() {
   const [actionLoading, setActionLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [elapsedHours, setElapsedHours] = useState('00:00:00');
-  
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
   // Biometric scan states
   const [permission, requestPermission] = useCameraPermissions();
   const [isVerifyingFace, setIsVerifyingFace] = useState(false);
@@ -67,6 +72,25 @@ export default function HomeScreen() {
 
   // Scanning animation shared value
   const scanLineY = useSharedValue(-SCANNER_SIZE / 2);
+
+  // Staggered entrance animations
+  const headerAnim = useSharedValue(0);
+  const buttonAnim = useSharedValue(0);
+  const cardAnim = useSharedValue(0);
+  const buttonScale = useSharedValue(1);
+
+  const headerEntranceStyle = useAnimatedStyle(() => ({
+    opacity: headerAnim.value,
+    transform: [{ translateY: (1 - headerAnim.value) * -20 }],
+  }));
+  const buttonEntranceStyle = useAnimatedStyle(() => ({
+    opacity: buttonAnim.value,
+    transform: [{ scale: 0.7 + buttonAnim.value * 0.3 }, { scale: buttonScale.value }],
+  }));
+  const cardEntranceStyle = useAnimatedStyle(() => ({
+    opacity: cardAnim.value,
+    transform: [{ translateY: (1 - cardAnim.value) * 24 }],
+  }));
 
   // Haversine formula to compute distance in meters
   const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -119,7 +143,14 @@ export default function HomeScreen() {
 
   // On mount: fetch data, do initial location check, and set up 10s location polling
   useEffect(() => {
-    initDashboard();
+    const run = async () => {
+      await initDashboard();
+      // Staggered entrance after data loads
+      headerAnim.value = withTiming(1, { duration: 450 });
+      buttonAnim.value = withDelay(150, withSpring(1, { damping: 14, stiffness: 120 }));
+      cardAnim.value = withDelay(300, withTiming(1, { duration: 450 }));
+    };
+    run();
 
     locationIntervalRef.current = setInterval(() => {
       updateLocationCheck();
@@ -281,7 +312,10 @@ export default function HomeScreen() {
         image,
       });
 
-      Alert.alert('Verification Success', response.data.message);
+      // Show animated success overlay instead of plain alert
+      const isIn = !todayLog || !todayLog.mark_in_time;
+      setSuccessMessage(isIn ? '✅ Marked In!' : '✅ Marked Out!');
+      setShowSuccess(true);
       await fetchData(); // Reload logs
     } catch (err: any) {
       let msg = 'Failed to mark attendance. Please check connection.';
@@ -355,7 +389,7 @@ export default function HomeScreen() {
       ) : (
         <>
           {/* Header Card */}
-          <View style={styles.headerCard}>
+          <Animated.View style={[styles.headerCard, headerEntranceStyle]}>
             <ThemedText type="subtitle" style={styles.dateHeader}>
               {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
             </ThemedText>
@@ -365,10 +399,10 @@ export default function HomeScreen() {
                 {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </ThemedText>
             </View>
-          </View>
+          </Animated.View>
 
           {/* Dynamic Geofence Action Button */}
-          <View style={styles.buttonContainer}>
+          <Animated.View style={[styles.buttonContainer, buttonEntranceStyle]}>
             {/* Pulsating Ring */}
             {!buttonDisabled && (
               <View
@@ -407,10 +441,10 @@ export default function HomeScreen() {
                 </View>
               )}
             </TouchableOpacity>
-          </View>
+          </Animated.View>
 
           {/* Location Status Badge */}
-          <View style={[styles.statusBadge, { backgroundColor: `${ringColor}10`, borderColor: `${ringColor}30` }]}>
+          <Animated.View style={[styles.statusBadge, { backgroundColor: `${ringColor}10`, borderColor: `${ringColor}30` }, cardEntranceStyle]}>
             <Ionicons
               name={activeZone ? 'checkmark-circle' : 'alert-circle'}
               size={20}
@@ -419,10 +453,10 @@ export default function HomeScreen() {
             <ThemedText type="smallMedium" style={[styles.statusBadgeText, { color: activeZone ? Colors.teal : ringColor }]}>
               {statusText}
             </ThemedText>
-          </View>
+          </Animated.View>
 
           {/* Today's Log Card */}
-          <View style={styles.logCard}>
+          <Animated.View style={[styles.logCard, cardEntranceStyle]}>
             <ThemedText type="subtitle" style={styles.cardTitle}>
               Today's Session
             </ThemedText>
@@ -461,7 +495,7 @@ export default function HomeScreen() {
                 </View>
               </View>
             ) : null}
-          </View>
+          </Animated.View>
         </>
       )}
 
@@ -510,6 +544,13 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Animated success overlay */}
+      <SuccessOverlay
+        visible={showSuccess}
+        message={successMessage}
+        onDone={() => setShowSuccess(false)}
+      />
     </ScrollView>
   );
 }
